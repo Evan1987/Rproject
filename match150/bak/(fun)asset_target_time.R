@@ -1,0 +1,54 @@
+
+asset_target_time<-function(create_time,endlineday=1,
+                   handlehour=2,hstarthour=10,hendhour=20,
+                   pstarthour=7,pendhour=22)
+{
+  library(lubridate)
+  endline=endlineday*24*60*60
+  handle=handlehour*60*60
+  hstart=hstarthour*60*60
+  hend=hendhour*60*60
+  pstart=pstarthour*60*60
+  pend=pendhour*60*60
+  create_time<-as.POSIXct(create_time)
+  create_time_day<-floor_date(create_time,"day")
+  end_time1<-create_time+endline#最晚打款时间
+  end_time1_day<-floor_date(end_time1,"day")
+  #安全最晚打款时间end_time1_day+hstart+handle~~end_time1_day+hend
+  if((end_time1<=end_time1_day+hend)&&(end_time1>=end_time1_day+hstart+handle))
+  {
+    end_time1<-end_time1#最晚打款时间不用变
+    end_time2<-end_time1-handle#最早打款时间&&最晚匹配时间
+  }else
+  {
+    if(end_time1>(end_time1_day+hend))
+    {
+      end_time1<-end_time1_day+hend#最晚打款时间提前至hend
+      end_time2<-end_time1-handle#最早打款时间&&最晚匹配时间
+    }
+    if(end_time1<(end_time1_day+hstart+handle))
+    {
+      if(end_time1>=end_time1_day+hstart)
+      {end_time1<-end_time1
+      #最晚打款时间提前至前一天hend之前
+       end_time2<-hend-handle+end_time1-hstart-24*60*60#最早打款时间&&最晚匹配时间
+      }
+      if(end_time1<end_time1_day+hstart)
+      {
+        end_time1<-create_time_day+hend
+        end_time2<-end_time1-handle
+      }
+    }
+  }
+  #end_time2最晚匹配时间
+  end_time2_day<-floor_date(end_time2,"day")
+  if((end_time2>=end_time2_day+pstart)&&(end_time2<=end_time2_day+pend))
+  {end_time2<-end_time2}else
+  {
+    if(end_time2>end_time2_day+pend)
+    {end_time2<-end_time2_day+pend}
+    if(end_time2<end_time2_day+pstart)
+    {end_time2<-end_time2_day-24*60*60+pend}
+  }
+  return(end_time2)
+}

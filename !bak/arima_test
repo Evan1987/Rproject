@@ -1,0 +1,50 @@
+library(data.table)
+library(fUnitRoots)
+library(forecast)
+library(tseries)
+source('~/RStudio/(fun)mysqlconn.R')
+conn<-mysqlconn("mysql_settings.csv")
+source('~/RStudio/(fun)export_plot_data.R', encoding = 'UTF-8')
+source('~/RStudio/(fun)plot_user_data.R', encoding = 'UTF-8')
+
+
+z1<-"select * from jlcdaily where date>='2016-03-01' and date<='2016-12-05'"
+jlcdata<-as.data.table(sqlQuery(conn,z1))
+
+tsdata<-data.table(date=jlcdata$date,invest_amount=jlcdata$invest_amount)
+
+o1<-copy(tsdata)
+o2<-o1[date>'2016-10-15' & date<='2016-12-05',]
+l<-BoxCox.lambda(o2$invest_amount,method = "loglik")
+o2[,trans_invest_amount:=BoxCox(invest_amount,lambda = l)]
+data<-o2$trans_invest_amount
+m1<-arima(data,order=c(2,1,1),seasonal = list(order=c(0,1,1),period=7))
+f2<-forecast(m1,1)
+InvBoxCox(f2$mean,l)
+
+predict_result<-data.frame()
+for (i in 1:length(adddata)) {
+  data<-c(data,adddata[i])
+  model0<-arima(data,order=c(2,1,1),seasonal = list(order=c(0,1,1),period=7))
+  f<-forecast(model0,1)
+  result<-c(as.numeric(f$mean),f$lower[1,],f$upper[1,])
+  predict_result<-rbind(predict_result,result)
+}
+colnames(predict_result)<-c("forecast_mean","lower0.8","lower0.95","higher0.8","higher0.95")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

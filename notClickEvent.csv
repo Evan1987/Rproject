@@ -1,0 +1,26 @@
+id,module,module_description,event,event_description,isclick
+1,open,打开,open001,用户APP打开,0
+2,exit,退出,exit002,用户APP由前台切换到后台,0
+3,register,注册,register000,注册页 pv,0
+16,register,注册,register013,“摇一摇看收益”计数,0
+23,account,添加银行卡,account000,绑卡页 pv,0
+67,redeem,提现,redeem007,“转出小贴士弹层”弹出数,0
+71,homepage01,首页,homepage01,“已登录首页”PV,0
+89,homepage02,未登录首页,homepage02,未登录首页 pv,0
+103,homepage02,未登录首页,homepage02014,“下拉安全保障”下拉数,0
+119,details02,已登录已投资-项目详情页,details02009,“项目详情页-预约成功弹层”弹出数,0
+157,salary01,设置工资计划,salary01009,“加入工资计划-交易密码”弹出数,0
+169,salary02,修改工资计划,salary02006,“修改-交易密码”弹出数,0
+190,salary03,已设置工资计划,salary03014,“终止-支付密码”弹出数,0
+216,house01,设置房租房贷计划,house01012,“加入房租计划-交易密码”弹出数,0
+222,house01,设置房租房贷计划,house01018,“加入房贷计划-交易密码”弹出数,0
+238,house02,设置房租房贷计划,house02010,“修改-房租-交易密码”弹出数,0
+244,house02,设置房租房贷计划,house02016,“修改-房贷-交易密码”弹出数,0
+268,house04,已设置房贷计划,house04010,“终止房贷计划-支付密码”弹出数,0
+282,house05,已设置房贷计划,house05010,“终止房租计划-支付密码”弹出数,0
+336,dream02,账户-梦想计划,dream02008,“攒钱中详情页-攒钱-支付密码”弹出数,0
+348,dream02,账户-梦想计划,dream02020,“攒钱中详情页-终止-支付密码”弹出数,0
+407,changePassword,修改支付密码,changePassword01006,修改成功计数,0
+413,findPassword,找回支付密码,findPassword01006,“找回支付密码-新密码输入”输入计数,0
+414,findPassword,找回支付密码,findPassword01007,“找回支付密码-新密码再次输入”输入计数,0
+416,findPassword,找回支付密码,findPassword01009,找回支付密码成功计数,0
