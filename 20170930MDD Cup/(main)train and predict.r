@@ -9,13 +9,7 @@ path = "F:/meituan_Project/20170930 MDD Cup/data/clean/"
 totalTrainDF = fread(paste0(path,"trainDF.csv"))
 weatherInfo = fread(paste0(path,"total_weather_status_log.csv"))
 areaInfo = fread(paste0(path,"total_area_status_log.csv"))
-testADF = fread(paste0(path,"testADF.csv"))%>%
-{
-  durationQ = quantile(.$delivery_duration,probs = seq(0,1,0.01))
-  lo = durationQ[which(names(durationQ)=="1%")]
-  up = durationQ[which(names(durationQ)=="99%")]
-  .[delivery_duration>lo & delivery_duration<up,]
-}
+testADF = fread(paste0(path,"testADF.csv"))
 
 featurePro1<-function(df){
   result = copy(df)%>%
@@ -25,11 +19,19 @@ featurePro1<-function(df){
   return(result)
 }
 
-trainDF = totalTrainDF[hour%in%c(11,17)]
+trainDF = totalTrainDF[hour%in%c(11,17)]#%>%
+# {
+#   distance = quantile(.$delivery_distance,probs=seq(0,1,0.01))
+#   lo = distance[which(names(distance)=="1%")]
+#   up = distance[which(names(distance)=="99%")]
+#   .[between(delivery_distance,lo,up),]
+# }
+  
 testDF = fread(paste0(path,"testDF.csv"))%>%featurePro1(.)
 trainDF = featurePro1(trainDF)
 
-
+##################### Single Model ##########################
+## XgBoost
 avail_features = names(trainDF)%>%{
   drop_cols = c("order_unix_time",
                 "arriveshop_unix_time",
@@ -42,11 +44,9 @@ avail_features = names(trainDF)%>%{
                 "delivery_duration",
                 "temperature",
                 "wind",
-                "time",
                 "rain",
                 "poi_lat",
                 "poi_lng",
-                "area_id",
                 "order_id")
   
   .[which(!.%in%drop_cols)]
@@ -66,7 +66,6 @@ params = list("boost"="gbtree",
               "seed"=20171001,
               "num_round"=1000)
 
-
 xgModel = getXgModel(avail_features,labels,trainDF,params)
 importance_matrix = xgb.importance(model=xgModel,feature_names = avail_features)
 xgb.plot.importance(importance_matrix)
@@ -74,16 +73,41 @@ xgb.plot.importance(importance_matrix)
 sub = getXgSub(xgModel,testDF,avail_features,labels)
 # result = maeEval(sub,test)
 # resultDF = result$result
-write.csv(sub,paste0("F:/meituan_Project/20170930 MDD Cup/data/sub/sub_result1109_02.csv"),row.names = F)
+write.csv(sub,paste0("F:/meituan_Project/20170930 MDD Cup/data/sub/sub_result1109_03.csv"),row.names = F)
 
+## GBDT
+library(gbm)
+generateFormula<-function(features,labels){
+  library(stringr)
+  rhs = str_c(features,collapse = "+")
+  formulaStr = paste0(labels,"~",rhs)
+  return(eval(parse(text=formulaStr)))
+}
+formula = generateFormula(avail_features,labels)
+gbm1 = gbm(formula, 
+           data = trainDF, 
+           var.monotone = rep(0,length(avail_features)),
+           distribution = "gaussian",
+           n.trees = 1000,
+           shrinkage = 0.15,
+           interaction.depth = 3,
+           bag.fraction = 0.5,
+           train.fraction = 0.65,
+           n.minobsinnode = 10,
+           cv.folds = 5,
+           keep.data = FALSE,
+           verbose = TRUE,
+           n.cores = 8)
 
+best.iter = gbm.perf(gbm1,method = "cv")
+summary(gbm1,n.trees = best.iter)
 
-
-
-
-
-
-
+pred = predict.gbm(gbm1,testDF,n.trees = best.iter)
+sub = data.table(testDF$order_id,pred)%T>%
+{
+  names(.)<-c("order_id",labels)
+}
+write.csv(sub,paste0("F:/meituan_Project/20170930 MDD Cup/data/sub/sub_result1109_04.csv"),row.names = F)
 
 
 ####################### k fold 3 model stack ########################

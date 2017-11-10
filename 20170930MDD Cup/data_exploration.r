@@ -3,11 +3,11 @@ library(data.table)
 library(magrittr)
 path = "F:/meituan_Project/20170930 MDD Cup/data/clean/"
 
-trainDF = fread(paste0(path,"trainDF.csv"))
+totalTrainDF = fread(paste0(path,"trainDF.csv"))
 weatherInfo = fread(paste0(path,"total_weather_status_log.csv"))
 areaInfo = fread(paste0(path,"total_area_status_log.csv"))
 testDF = fread(paste0(path,"testDF.csv"))
-
+testADF = fread(paste0(path,"testADF.csv"))
 
 orderSummary <-copy(areaInfo)%>%
 {
@@ -15,6 +15,7 @@ orderSummary <-copy(areaInfo)%>%
   .[,lapply(.SD,mean),by=.(area_id,time),.SDcols = vars]
 }
 
+trainDF = totalTrainDF[hour%in%c(11,17)]
 areas = unique(orderSummary$area_id)
 
 
@@ -33,94 +34,66 @@ for(area in areas){
 }
 
 
+poi_summary = totalTrainDF[,.(duration_mean=mean(delivery_duration),
+                              duration_sd = sd(delivery_duration),
+                              orderNum=.N,
+                              distance_mean=mean(delivery_distance),
+                              distance_sd = sd(delivery_distance)),by=.(poi_id,hour)]%>%
+  setorder(.,poi_id,hour)
+
+poi_summary_slim = poi_summary[hour%in%c(10,11,16,17)]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-drop_cols = c("order_unix_time",
-              "arriveshop_unix_time",
-              "fetch_unix_time",
-              "finish_unix_time",
-              "id",
-              "log_day",
-              "temperature",
-              "order_id",
-              "customer_longitude",
-              "customer_latitude",
-              "delivery_duration")
-
-features = names(trainDF)%>%.[which(!.%in%drop_cols)]
+avail_features = names(trainDF)%>%{
+  drop_cols = c("order_unix_time",
+                "arriveshop_unix_time",
+                "fetch_unix_time",
+                "finish_unix_time",
+                "id",
+                "log_day",
+                "hour",
+                "minute",
+                "delivery_duration",
+                "temperature",
+                "wind",
+                "rain",
+                "poi_lat",
+                "poi_lng",
+                "order_id")
+  
+  .[which(!.%in%drop_cols)]
+}
 labels = "delivery_duration"
-x_train = trainDF[,.SD,.SDcols=features]%>%as.matrix(.)
-y_train = trainDF$delivery_duration%>%as.matrix(.)
 
-x_test = testDF[,.SD,.SDcols=features]%>%as.matrix(.)
-
-dtrain = xgb.DMatrix(x_train,label=y_train)
-dtest = xgb.DMatrix(x_test)
-
-watchlist = list("train"=dtrain)
-
-params = list("boost"="gbtree",
-              "silent"=1,
-              "eta"=0.15,
-              "max_depth"=5,
-              "objective"="reg:linear",
-              "eval_metric"="mae",
-              "colsample_bytree"=0.65,
-              "subsample"=0.8,
-              "nthread"=-1,
-              "seed"=20171001,
-              "num_round"=1000)
-
-xgbModel = xgb.train(params = params,
-                     nrounds = params$num_round,
-                     data = dtrain,
-                     watchlist = watchlist,
-                     verbose = 1)
-
-pred = predict(xgbModel,x_test)
+library(corrplot)
+corr = cor(trainDF[,.SD,.SDcols =c(avail_features,labels)])
+corrplot(corr,method = "number")
 
 
-sub = data.table(order_id = testDF$order_id,
-                 delivery_duration = pred)
-write.csv(sub,paste0(testPath,"sub_result1106_03.csv"),row.names = F)
+
+####################### area_info explore ####################
+## 11.10
+sampleAreaInfo = areaInfo[hour%in%c(10,11,12,13,16,17,18)]%>%setorder(.,area_id,log_day,time)
+
+sampleAreaSummary = sampleAreaInfo[,.(max_rider_num = max(working_rider_num),
+                                      min_rider_num = min(working_rider_num),
+                                      max_deliver_order_num = max(deliverying_order_num),
+                                      min_deliver_order_num = min(deliverying_order_num)),by=.(area_id,log_day,hour)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
